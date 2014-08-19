@@ -9,6 +9,7 @@ package util
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 )
 
 type buffer struct {
@@ -130,6 +131,19 @@ func (p *BufferPool) String() string {
 		p.baseline0, p.size, p.sizeMiss, p.get, p.put, p.less, p.equal, p.greater, p.miss)
 }
 
+func (p *BufferPool) drain() {
+	for {
+		time.Sleep(1 * time.Second)
+		select {
+		case <-p.pool[0]:
+		case <-p.pool[1]:
+		case <-p.pool[2]:
+		case <-p.pool[3]:
+		default:
+		}
+	}
+}
+
 // NewBufferPool creates a new initialized 'buffer pool'.
 func NewBufferPool(baseline int) *BufferPool {
 	if baseline <= 0 {
@@ -143,5 +157,6 @@ func NewBufferPool(baseline int) *BufferPool {
 	for i, cap := range []int{6, 6, 3, 1} {
 		p.pool[i] = make(chan []byte, cap)
 	}
+	go p.drain()
 	return p
 }
